@@ -2,6 +2,7 @@ from .yolov2 import YOLOv2
 
 
 def build_yolov2(args, cfg, device, input_size, num_classes=20, trainable=False):
+    ##trainable：指定是否在模型中启用反向传播来更新权重
     anchor_size = cfg['anchor_size'][args.dataset]
     
     model = YOLOv2(

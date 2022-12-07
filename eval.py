@@ -14,7 +14,7 @@ from models.build import build_yolov2
 parser = argparse.ArgumentParser(description='YOLOv2 Detector Evaluation')
 parser.add_argument('-d', '--dataset', default='voc',
                     help='voc, coco-val, coco-test.')
-parser.add_argument('--root', default='/mnt/share/ssd2/dataset',
+parser.add_argument('--root', default='D:/pycharm/dataset',
                     help='data root')
 
 parser.add_argument('-v', '--version', default='yolov2',

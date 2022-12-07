@@ -31,6 +31,7 @@ class DarkNet_19(nn.Module):
         # output : stride = 2, c = 32
         self.conv_1 = nn.Sequential(
             Conv_BN_LeakyReLU(3, 32, 3, 1),
+            ##输入通道数, 输出通道数, 卷积核大小, 步长
             nn.MaxPool2d((2,2), 2),
         )
 
@@ -104,7 +105,7 @@ class DarkNet_19(nn.Module):
 def build_darknet19(pretrained=False):
     # model
     model = DarkNet_19()
-    feat_dims = [256, 512, 1024]
+    feat_dims = [256, 512, 1024]  ##对应于3个卷积层输出特征图的通道数
 
     # load weight
     if pretrained:
@@ -114,9 +115,9 @@ def build_darknet19(pretrained=False):
         checkpoint_state_dict = torch.hub.load_state_dict_from_url(
             url=url, map_location="cpu", check_hash=True)
         # model state dict
-        model_state_dict = model.state_dict()
+        model_state_dict = model.state_dict() ##用于保存和加载模型的训练状态
         # check
-        for k in list(checkpoint_state_dict.keys()):
+        for k in list(checkpoint_state_dict.keys()): ##确保在加载预训练模型时，只有形状和名称都匹配的参数才会被加载
             if k in model_state_dict:
                 shape_model = tuple(model_state_dict[k].shape)
                 shape_checkpoint = tuple(checkpoint_state_dict[k].shape)

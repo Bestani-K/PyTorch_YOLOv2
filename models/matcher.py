@@ -3,14 +3,6 @@ import torch
 
 
 def compute_iou(anchor_boxes, gt_box):
-    """计算先验框和真实框之间的IoU
-    Input: \n
-        anchor_boxes: [K, 4] \n
-            gt_box: [1, 4] \n
-    Output: \n
-                iou : [K,] \n
-    """
-
     # anchor box :
     ab_x1y1_x2y2 = np.zeros([len(anchor_boxes), 4])
     # 计算先验框的左上角点坐标和右下角点坐标
@@ -19,9 +11,7 @@ def compute_iou(anchor_boxes, gt_box):
     ab_x1y1_x2y2[:, 2] = anchor_boxes[:, 0] + anchor_boxes[:, 2] / 2  # xmax
     ab_x1y1_x2y2[:, 3] = anchor_boxes[:, 1] + anchor_boxes[:, 3] / 2  # ymax
     w_ab, h_ab = anchor_boxes[:, 2], anchor_boxes[:, 3]
-    
-    # gt_box : 
-    # 我们将真实框扩展成[K, 4], 便于计算IoU. 
+
     gt_box_expand = np.repeat(gt_box, len(anchor_boxes), axis=0)
 
     gb_x1y1_x2y2 = np.zeros([len(anchor_boxes), 4])
@@ -44,30 +34,18 @@ def compute_iou(anchor_boxes, gt_box):
     return IoU
 
 
-def set_anchors(anchor_size):
-    """将输入进来的只包含wh的先验框尺寸转换成[N, 4]的ndarray类型，
-       包含先验框的中心点坐标和宽高wh，中心点坐标设为0. \n
-    Input: \n
-        anchor_size: list -> [[h_1, w_1],  \n
-                              [h_2, w_2],  \n
-                               ...,  \n
-                              [h_n, w_n]]. \n
-    Output: \n
-        anchor_boxes: ndarray -> [[0, 0, anchor_w, anchor_h], \n
-                                  [0, 0, anchor_w, anchor_h], \n
-                                  ... \n
-                                  [0, 0, anchor_w, anchor_h]]. \n
-    """
+def set_anchors(anchor_size): ##anchor_size是一个列表，其中包含多个元素，每个元素表示一个锚框的大小(二维，都是宽高)
     anchor_number = len(anchor_size)
     anchor_boxes = np.zeros([anchor_number, 4])
     for index, size in enumerate(anchor_size): 
         anchor_w, anchor_h = size
-        anchor_boxes[index] = np.array([0, 0, anchor_w, anchor_h])
+        anchor_boxes[index] = np.array([0, 0, anchor_w, anchor_h])  ##将每个anchor的左上角坐标设为(0, 0)
     
     return anchor_boxes
 
 
 def generate_txtytwth(gt_label, w, h, s, anchor_size, ignore_thresh):
+    #为一个真实标签生成对应于每个anchor box的位置、大小和权重的目标值
     xmin, ymin, xmax, ymax = gt_label[:-1]
     # 计算真实边界框的中心点和宽高
     c_x = (xmax + xmin) / 2 * w
@@ -139,16 +117,18 @@ def generate_txtytwth(gt_label, w, h, s, anchor_size, ignore_thresh):
         return result 
 
 
-def gt_creator(input_size, stride, label_lists, anchor_size, ignore_thresh):
+def gt_creator(input_size, stride, label_lists, anchor_size, ignore_thresh): ##生成ground truth
     # 必要的参数
     batch_size = len(label_lists)
     s = stride
     w = input_size
     h = input_size
-    ws = w // s
+    ws = w // s  ##表示输入图像上的 w 个像素对应到 feature map 上的 ws 个 grid cell
     hs = h // s
     anchor_number = len(anchor_size)
     gt_tensor = np.zeros([batch_size, hs, ws, anchor_number, 1+1+4+1+4])
+    ##1+1+4+1+4 : 第一个数表示 anchor 是否包含物体，第二个数表示 anchor 对应的类别，
+    ##第三到第六个数分别表示 anchor 的偏移量 t_x, t_y, t_w, t_h，第七个数表示权重，最后四个数表示 anchor 对应的 ground truth 相对坐标。
 
     # 制作正样本
     for batch_index in range(batch_size):

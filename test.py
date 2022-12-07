@@ -17,7 +17,7 @@ from models.build import build_yolov2
 parser = argparse.ArgumentParser(description='YOLOv2 Detection')
 parser.add_argument('-d', '--dataset', default='voc',
                     help='voc, coco-val.')
-parser.add_argument('--root', default='/mnt/share/ssd2/dataset',
+parser.add_argument('--root', default='D:/pycharm/dataset/VOCdevkit',
                     help='data root')
 parser.add_argument('-size', '--input_size', default=416, type=int,
                     help='输入图像尺寸')
@@ -47,19 +47,20 @@ def plot_bbox_labels(img, bbox, label=None, cls_color=None, text_scale=0.4):
     x1, y1, x2, y2 = bbox
     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
     t_size = cv2.getTextSize(label, 0, fontScale=1, thickness=2)[0]
+    ##text是要测量大小的文本字符串，fontFace是字体类型，fontScale是字体大小，thickness是字体线条宽度
     # plot bbox
     cv2.rectangle(img, (x1, y1), (x2, y2), cls_color, 2)
     
     if label is not None:
-        # plot title bbox
         cv2.rectangle(img, (x1, y1-t_size[1]), (int(x1 + t_size[0] * text_scale), y1), cls_color, -1)
-        # put the test on the title bbox
+        ##在原始图像img上画一个带有标签label的矩形框,左上角坐标为 (x1, y1-t_size[1]),右下角坐标为 (int(x1 + t_size[0] * text_scale), y1)
         cv2.putText(img, label, (int(x1), int(y1 - 5)), 0, text_scale, (0, 0, 0), 1, lineType=cv2.LINE_AA)
+        ##绘制标签
 
     return img
 
 
-def visualize(img, 
+def visualize(img,   ##实现了一个可视化函数，用于在图片上绘制检测框和类别标签
               bboxes, 
               scores, 
               labels, 

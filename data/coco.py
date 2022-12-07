@@ -39,16 +39,6 @@ class COCODataset(Dataset):
                  img_size=None,
                  transform=None, 
                  ):
-        """
-        COCO dataset initialization. Annotation data are read into memory by COCO API.
-        Args:
-            data_dir (str): dataset root directory
-            json_file (str): COCO json file image_set
-            image_set (str): COCO data image_set (e.g. 'train2017' or 'val2017')
-            img_size (int): target image size after pre-processing
-            min_size (int): bounding boxes smaller than this are ignored
-            debug (bool): if True, only one data id is selected from the dataset
-        """
         self.data_dir = data_dir
         self.json_file = json_file
         self.coco = COCO(os.path.join(self.data_dir, 'annotations', self.json_file))

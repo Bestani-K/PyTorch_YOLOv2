@@ -1,10 +1,3 @@
-"""VOC Dataset Classes
-
-Original author: Francisco Massa
-https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
-
-Updated by: Ellis Brown, Max deGroot
-"""
 import os.path as osp
 import torch
 import torch.utils.data as data
@@ -22,72 +15,35 @@ VOC_CLASSES = (  # always index 0
 
 
 class VOCAnnotationTransform(object):
-    """Transforms a VOC annotation into a Tensor of bbox coords and label index
-    Initilized with a dictionary lookup of classnames to indexes
-
-    Arguments:
-        class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
-            (default: alphabetic indexing of VOC's 20 classes)
-        keep_difficult (bool, optional): keep difficult instances or not
-            (default: False)
-        height (int): height
-        width (int): width
-    """
-
     def __init__(self, class_to_ind=None, keep_difficult=False):
         self.class_to_ind = class_to_ind or dict(
-            zip(VOC_CLASSES, range(len(VOC_CLASSES))))
+            zip(VOC_CLASSES, range(len(VOC_CLASSES)))) ##将VOC_CLASSES中的类别名称和它们在列表中的索引一一对应，并创建一个新的字典。
         self.keep_difficult = keep_difficult
 
     def __call__(self, target, width, height):
-        """
-        Arguments:
-            target (annotation) : the target annotation to be made usable
-                will be an ET.Element
-        Returns:
-            a list containing lists of bounding boxes  [bbox coords, class name]
-        """
         res = []
         for obj in target.iter('object'):
-            difficult = int(obj.find('difficult').text) == 1
+            difficult = int(obj.find('difficult').text) == 1  ##判断标注框是否为难识别的物体
             if not self.keep_difficult and difficult:
                 continue
-            name = obj.find('name').text.lower().strip()
+            name = obj.find('name').text.lower().strip()  ##转换成小写字母并去掉两端的空格
             bbox = obj.find('bndbox')
 
             pts = ['xmin', 'ymin', 'xmax', 'ymax']
             bndbox = []
-            for i, pt in enumerate(pts):
+            for i, pt in enumerate(pts):  ##获取目标物体的边界框信息
                 cur_pt = int(bbox.find(pt).text) - 1
-                # scale height or width
                 cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
                 bndbox.append(cur_pt)
             label_idx = self.class_to_ind[name]
             bndbox.append(label_idx)
-            res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
-            # img_id = target.find('filename').text[:-4]
+            res += [bndbox]
 
-        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+        return res
 
 
 class VOCDetection(data.Dataset):
-    """VOC Detection Dataset Object
-
-    input is image, target is annotation
-
-    Arguments:
-        root (string): filepath to VOCdevkit folder.
-        image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (callable, optional): transformation to perform on the
-            input image
-        target_transform (callable, optional): transformation to perform on the
-            target `annotation`
-            (eg: take in caption string, return tensor of word indices)
-        dataset_name (string, optional): which dataset to load
-            (default: 'VOC2007')
-    """
-
-    def __init__(self, 
+    def __init__(self,
                  root,
                  img_size=None,
                  image_sets=[('2007', 'trainval'), ('2012', 'trainval')],
@@ -120,60 +76,35 @@ class VOCDetection(data.Dataset):
         return len(self.ids)
 
 
-    def pull_item(self, index):
+    def pull_item(self, index):  ##返回在给定的索引处的数据
         img_id = self.ids[index]
 
-        target = ET.parse(self._annopath % img_id).getroot()
-        img = cv2.imread(self._imgpath % img_id)
+        target = ET.parse(self._annopath % img_id).getroot() ##解析数据集中对应图像的 XML 标注文件，并返回标注文件的根元素
+        img = cv2.imread(self._imgpath % img_id)  ##读取图像
         height, width, channels = img.shape
 
         if self.target_transform is not None:
-            target = self.target_transform(target, width, height)
+            target = self.target_transform(target, width, height)  ##将原始的VOC数据集的annotation转换为训练目标
 
-        # basic augmentation(SSDAugmentation or BaseTransform)
         if self.transform is not None:
-            # check labels
             if len(target) == 0:
                 target = np.zeros([1, 5])
             else:
                 target = np.array(target)
 
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
-            # to rgb
             img = img[:, :, (2, 1, 0)]
-            # img = img.transpose(2, 0, 1)
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+            ##将输入的img和target的bbox传入transform中进行数据增强
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
-        # return torch.from_numpy(img), target, height, width
 
 
-    def pull_image(self, index):
-        '''Returns the original image object at index in PIL form
-
-        Note: not using self.__getitem__(), as any transformations passed in
-        could mess up this functionality.
-
-        Argument:
-            index (int): index of img to show
-        Return:
-            PIL img
-        '''
+    def pull_image(self, index):  ##返回指定索引的图像
         img_id = self.ids[index]
         return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR), img_id
 
 
-    def pull_anno(self, index):
-        '''Returns the original annotation of image at index
-
-        Note: not using self.__getitem__(), as any transformations passed in
-        could mess up this functionality.
-
-        Argument:
-            index (int): index of img to get annotation of
-        Return:
-            list:  [img_id, [(label, bbox coords),...]]
-                eg: ('001718', [('dog', (96, 13, 438, 332))])
-        '''
+    def pull_anno(self, index):  ##获取指定索引的图像的注释信息
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
         gt = self.target_transform(anno, 1, 1)
@@ -184,9 +115,9 @@ if __name__ == "__main__":
     from transform import Augmentation, BaseTransform
 
     img_size = 640
-    pixel_mean = (0.406, 0.456, 0.485)  # BGR
-    pixel_std = (0.225, 0.224, 0.229)   # BGR
-    data_root = 'D:\\python_work\\object-detection\\dataset\\VOCdevkit'
+    pixel_mean = (0.406, 0.456, 0.485)
+    pixel_std = (0.225, 0.224, 0.229)
+    data_root = 'D:/pycharm/dataset/VOCdevkit/VOCdevkit'
     transform = Augmentation(img_size, pixel_mean, pixel_std)
     transform = BaseTransform(img_size, pixel_mean, pixel_std)
 
@@ -207,16 +138,19 @@ if __name__ == "__main__":
         image = image[..., (2, 1, 0)]
         # denormalize
         image = (image * pixel_std + pixel_mean) * 255
-        # to 
+        ##模型训练时输入的图像经过了归一化处理，即减去均值(pixel_mean)并除以标准差(pixel_std)，这样做是为了使得各个通道的取值范围接近，有利于模型的训练。
+        # to
         image = image.astype(np.uint8).copy()
+        ##将图像像素值类型转换为 np.uint8 类型
 
         # draw bbox
-        for box in gt:
+        for box in gt:  ##将ground truth框可视化在图片上
             xmin, ymin, xmax, ymax, _ = box
             xmin *= img_size
             ymin *= img_size
             xmax *= img_size
             ymax *= img_size
             image = cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0,0,255), 2)
+            ##(int(xmin), int(ymin)) 表示矩形框的左上角点坐标，(int(xmax), int(ymax)) 表示矩形框的右下角点坐标，(0,0,255) 表示矩形框的颜色，这里是红色，(2) 表示矩形框的边框宽度
         cv2.imshow('gt', image)
         cv2.waitKey(0)
